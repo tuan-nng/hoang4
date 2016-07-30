@@ -17,6 +17,10 @@ try {
     log = require('node-wit').log;
 }
 
+function sleep (time) {
+    return new Promise((resolve) => setTimeout(resolve, time));
+}
+
 const firstEntityValue = (entities, entity) => {
     const val = entities && entities[entity] &&
             Array.isArray(entities[entity]) &&
@@ -99,19 +103,23 @@ const actions = {
             var intent = firstEntityValue(entities, 'intent');
             if (intent) {
                 if (intent === 'cancel_order') {
+                    console.log("cancel-------");
                     context.cancelOrder = true;
                     delete context.trackOrder;
                     delete context.noIntent;
                 } else if (intent === 'track_order') {
+                    console.log("Track=========");
                     context.trackOrder = true;
                     delete context.cancelOrder;
                     delete context.noIntent;
                 } else {
+                    console.log("no itent-------");
                     context.noIntent = true;
                     delete context.cancelOrder;
                     delete context.trackOrder;
                 }
             } else {
+                console.log("no intent-------");
                 context.noIntent = true;
                 delete context.cancelOrder;
                 delete context.trackOrder;
@@ -129,6 +137,9 @@ const actions = {
                 context.missingOrderNumber = true;
                 delete context.getOrderNumber;
             }
+            delete context.cancelOrder;
+            delete context.trackOrder;
+            delete context.noIntent;
             return resolve(context);
         })
     },
@@ -191,6 +202,9 @@ const actions = {
                 }
             };
             sendGenericMessage(sessions[sessionId].fbid, messageData);
+            delete context.cancelOrder;
+            delete context.trackOrder;
+            delete context.noIntent;
             return resolve();
         });
     },
@@ -202,6 +216,12 @@ const actions = {
                     sendGenericMessage(sessions[sessionId].fbid, {text: JSON.stringify(obj.res)});
                 }
             });
+            sleep(1000).then(() => {
+                console.log("Chat for fun " + text);
+            });
+            delete context.cancelOrder;
+            delete context.trackOrder;
+            delete context.noIntent;
             return resolve();
         })
     },
