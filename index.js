@@ -3,6 +3,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
+const syncRequest = require('sync-request');
 const fetch = require('node-fetch');
 const app = express();
 
@@ -210,15 +211,8 @@ const actions = {
     },
     chatForFun({sessionId, context, text, entities}) {
         return new Promise(function (resolve, reject) {
-            request('http://104.199.133.173:8080/say?q=' + text, function (error, response, body) {
-                if (!error && response.statusCode == 200) {
-                    var obj = JSON.parse(body);
-                    sendGenericMessage(sessions[sessionId].fbid, {text: JSON.stringify(obj.res)});
-                }
-            });
-            sleep(1000).then(() => {
-                console.log("Chat for fun " + text);
-            });
+            var req = syncRequest('GET', 'http://104.199.133.173:8080/say?q=' + text);
+            sendGenericMessage(sessions[sessionId].fbid, {text: JSON.stringify(JSON.parse(req.getBody()))});
             delete context.cancelOrder;
             delete context.trackOrder;
             delete context.noIntent;
