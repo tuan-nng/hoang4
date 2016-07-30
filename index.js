@@ -94,6 +94,31 @@ const actions = {
             return Promise.resolve()
         }
     },
+    detectIntent({context, entities}) {
+        return new Promise(function (resolve, reject) {
+            var intent = firstEntityValue(entities, 'intent');
+            if (intent) {
+                if (intent === 'cancel_order') {
+                    context.cancelOrder = true;
+                    delete context.trackOrder;
+                    delete context.noIntent;
+                } else if (intent === 'track_order') {
+                    context.trackOrder = true;
+                    delete context.cancelOrder;
+                    delete context.noIntent;
+                } else {
+                    context.noIntent = true;
+                    delete context.cancelOrder;
+                    delete context.trackOrder;
+                }
+            } else {
+                context.noIntent = true;
+                delete context.cancelOrder;
+                delete context.trackOrder;
+            }
+            return resolve(context);
+        })
+    },
     getOrderNumber({context, entities}) {
         return new Promise(function (resolve, reject) {
             var orderNumber = firstEntityValue(entities, 'orderNumber');
