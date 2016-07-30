@@ -59,6 +59,13 @@ const findOrCreateSession = (fbid) => {
 // Wit.ai parameters
 const WIT_TOKEN = process.env.WIT_TOKEN;
 
+// Setting up our bot
+const wit = new Wit({
+    accessToken: WIT_TOKEN,
+    actions,
+    logger: new log.Logger(log.INFO)
+});
+
 app.set('port', (process.env.PORT || 5000));
 
 // Process application/x-www-form-urlencoded
