@@ -126,13 +126,13 @@ const actions = {
     chatForFun({context, entities}) {
         return new Promise(function (resolve, reject) {
             var message_body = firstEntityValue(entities, 'message_body');
-            request('http://104.199.133.173:8080/say?q=' + message_body, function (error, response, body) {
-                if (!error && response.statusCode == 200) {
-                    console.log(message_body);
-                    var obj = JSON.parse(body);
-                    console.log(obj.res); // Show the HTML for the Google homepage.
-                }
-            });
+            // request('http://104.199.133.173:8080/say?q=' + message_body, function (error, response, body) {
+            //     if (!error && response.statusCode == 200) {
+            //         console.log(message_body);
+            //         var obj = JSON.parse(body);
+            //         console.log(obj.res); // Show the HTML for the Google homepage.
+            //     }
+            // });
             return resolve();
         })
     },
