@@ -94,15 +94,15 @@ const actions = {
             return Promise.resolve()
         }
     },
-    trackOrder({context, entities}) {
+    getOrderNumber({context, entities}) {
         return new Promise(function (resolve, reject) {
             var orderNumber = firstEntityValue(entities, 'orderNumber');
             if (orderNumber) {
-                context.orderStatus = 'success';
+                context.getOrderNumber = 'success';
                 delete context.missingOrderNumber;
             } else {
                 context.missingOrderNumber = true;
-                delete context.orderStatus;
+                delete context.getOrderNumber;
             }
             return resolve(context);
         })
@@ -113,30 +113,55 @@ const actions = {
                 "attachment": {
                     "type": "template",
                     "payload": {
-                        "template_type": "generic",
-                        "elements": [{
-                            "title": "First card",
-                            "subtitle": "Element #1 of an hscroll",
-                            "image_url": "http://messengerdemo.parseapp.com/img/rift.png",
-                            "buttons": [{
-                                "type": "web_url",
-                                "url": "https://www.messenger.com",
-                                "title": "web url"
-                            }, {
-                                "type": "postback",
-                                "title": "Postback",
-                                "payload": "Payload for first element in a generic bubble",
-                            }],
-                        }, {
-                            "title": "Second card",
-                            "subtitle": "Element #2 of an hscroll",
-                            "image_url": "http://messengerdemo.parseapp.com/img/gearvr.png",
-                            "buttons": [{
-                                "type": "postback",
-                                "title": "Postback",
-                                "payload": "Payload for second element in a generic bubble",
-                            }],
-                        }]
+                        "template_type": "receipt",
+                        "recipient_name": "Stephane Crozatier",
+                        "order_number": "12345678902",
+                        "currency": "SGD",
+                        "payment_method": "Visa 2345",
+                        "order_url": "http://petersapparel.parseapp.com/order?order_id=123456",
+                        "timestamp": "1428444852",
+                        "elements": [
+                            {
+                                "title": "Floral Crochet Bodycon Dress",
+                                "subtitle": "Verification pending",
+                                "quantity": 2,
+                                "price": 179.80,
+                                "currency": "SGD",
+                                "image_url": "http://static-sg.zacdn.com/p/topshop-0274-965084-1.jpg"
+                            },
+                            {
+                                "title": "Tie Collar Polka Dot Sleeveless Dress",
+                                "subtitle": "Verification pending",
+                                "quantity": 1,
+                                "price": 39.90,
+                                "currency": "SGD",
+                                "image_url": "http://static-sg.zacdn.com/p/mayuki-9107-254854-1.jpg"
+                            }
+                        ],
+                        "address": {
+                            "street_1": "1 Hacker Way",
+                            "street_2": "",
+                            "city": "Menlo Park",
+                            "postal_code": "94025",
+                            "state": "CA",
+                            "country": "US"
+                        },
+                        "summary": {
+                            "subtotal": 129.80,
+                            "shipping_cost": 4.95,
+                            "total_tax": 6.19,
+                            "total_cost": 200.84
+                        },
+                        "adjustments": [
+                            {
+                                "name": "New Customer Discount",
+                                "amount": 20
+                            },
+                            {
+                                "name": "$10 Off Coupon",
+                                "amount": 10
+                            }
+                        ]
                     }
                 }
             };
@@ -153,6 +178,19 @@ const actions = {
                 }
             });
             return resolve();
+        })
+    },
+    getEmail({context, entities}) {
+        return new Promise(function (resolve, reject) {
+            var email = firstEntityValue(entities, 'email');
+            if (email) {
+                context.getEmail = 'success';
+                delete context.missingEmail;
+            } else {
+                context.missingEmail = true;
+                delete context.getEmail;
+            }
+            return resolve(context);
         })
     },
     // You should implement your custom actions here
