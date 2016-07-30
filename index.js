@@ -17,6 +17,18 @@ try {
     log = require('node-wit').log;
 }
 
+const firstEntityValue = (entities, entity) => {
+    const val = entities && entities[entity] &&
+            Array.isArray(entities[entity]) &&
+            entities[entity].length > 0 &&
+            entities[entity][0].value
+        ;
+    if (!val) {
+        return null;
+    }
+    return typeof val === 'object' ? val.value : val;
+};
+
 const fbMessage = (id, text) => {
     const body = JSON.stringify({
         recipient: { id },
@@ -82,6 +94,48 @@ const actions = {
             return Promise.resolve()
         }
     },
+    // send(request, response) {
+    //     const {sessionId, context, entities} = request;
+    //     const {text, quickreplies} = response;
+    //     return new Promise(function(resolve, reject) {
+    //         console.log('sending...', JSON.stringify(response));
+    //         return resolve();
+    //     });
+    // },
+    trackOrder({context, entities}) {
+        return new Promise(function (resolve, reject) {
+            var orderNumber = firstEntityValue(entities, 'orderNumber');
+            if (orderNumber) {
+                context.orderStatus = 'success';
+                delete context.missingOrderNumber;
+            } else {
+                context.missingOrderNumber = true;
+                delete context.orderStatus;
+            }
+            return resolve(context);
+        })
+    },
+    sendOrderInfo({sessionId, context, text, entities}) {
+        return new Promise(function(resolve, reject) {
+            console.log('Session ${sessionId} received ${text}');
+            console.log('The current context is ${JSON.stringify(context)}');
+            console.log('Wit extracted ${JSON.stringify(entities)}');
+            return resolve();
+        });
+    },
+    chatForFun({context, entities}) {
+        return new Promise(function (resolve, reject) {
+            var message_body = firstEntityValue(entities, 'message_body');
+            request('http://104.199.133.173:8080/say?q=' + message_body, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    console.log(message_body);
+                    var obj = JSON.parse(body);
+                    console.log(obj.res); // Show the HTML for the Google homepage.
+                }
+            });
+            return resolve();
+        })
+    },
     // You should implement your custom actions here
     // See https://wit.ai/docs/quickstart
 };
@@ -118,17 +172,6 @@ app.get('/webhook/', function (req, res) {
 });
 
 app.post('/webhook/', function (req, res) {
-
-    // var messaging_events = req.body.entry[0].messaging;
-    // for (var i = 0; i < messaging_events.length; i++) {
-    //     var event = req.body.entry[0].messaging[i];
-    //     var sender = event.sender.id;
-    //     if (event.message && event.message.text) {
-    //         var text = event.message.text;
-    //         sendTextMessage(sender, "Text received, echo: " + text.substring(0, 200))
-    //     }
-    // }
-    // res.sendStatus(200)
 
     const data = req.body;
 
@@ -190,28 +233,7 @@ app.post('/webhook/', function (req, res) {
     res.sendStatus(200);
 });
 
-const token = process.env.FB_PAGE_ACCESS_TOKEN;
-
-function sendTextMessage(sender, text) {
-    var messageData = { text:text };
-    request({
-        url: 'https://graph.facebook.com/v2.6/me/messages',
-        qs: {access_token:token},
-        method: 'POST',
-        json: {
-            recipient: {id:sender},
-            message: messageData
-        }
-    }, function(error, response, body) {
-        if (error) {
-            console.log('Error sending messages: ', error)
-        } else if (response.body.error) {
-            console.log('Error: ', response.body.error)
-        }
-    })
-}
-
-// Spin up the server
+ // Spin up the server
 app.listen(app.get('port'), function() {
     console.log('running on port', app.get('port'))
 });
