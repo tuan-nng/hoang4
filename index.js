@@ -36,8 +36,8 @@ const firstEntityValue = (entities, entity) => {
 
 const fbMessage = (id, text) => {
     const body = JSON.stringify({
-        recipient: { id },
-        message: { text },
+        recipient: { id:id },
+        message: { text:text },
     });
     const qs = 'access_token=' + encodeURIComponent(process.env.FB_PAGE_ACCESS_TOKEN);
     return fetch('https://graph.facebook.com/me/messages?' + qs, {
@@ -86,6 +86,7 @@ const actions = {
             return fbMessage(recipientId, text)
                 .then(() => null)
                 .catch((err) => {
+                    console.log("Error message: " + text);
                     console.error(
                         'Oops! An error occurred while forwarding the response to',
                         recipientId,
@@ -101,6 +102,7 @@ const actions = {
     },
     detectIntent({context, entities}) {
         return new Promise(function (resolve, reject) {
+            console.log("Dectec intent ++++");
             var intent = firstEntityValue(entities, 'intent');
             if (intent) {
                 if (intent === 'cancel_order') {
@@ -124,6 +126,24 @@ const actions = {
                 context.noIntent = true;
                 delete context.cancelOrder;
                 delete context.trackOrder;
+            }
+            return resolve(context);
+        })
+    },
+    cancelOrder({sessionId, context, text, entities}) {
+        return new Promise(function (resolve, reject) {
+            var yesNo = firstEntityValue(entities, 'yes_no');
+            if (yesNo) {
+                if (yesNo === 'yes') {
+                    let messageData = {text: "We've recorded your cancellation. Please check your email for more detail."};
+                    sendGenericMessage(sessions[sessionId].fbid, messageData);
+                } else {
+                    let messageData = {text: "You canceled the request."};
+                    sendGenericMessage(sessions[sessionId].fbid, messageData);
+                }
+            } else {
+                let messageData = {text: "You canceled the request."};
+                sendGenericMessage(sessions[sessionId].fbid, messageData);
             }
             return resolve(context);
         })
@@ -212,10 +232,11 @@ const actions = {
     chatForFun({sessionId, context, text, entities}) {
         return new Promise(function (resolve, reject) {
             var req = syncRequest('GET', 'http://104.199.133.173:8080/say?q=' + text);
-            sendGenericMessage(sessions[sessionId].fbid, {text: JSON.stringify(JSON.parse(req.getBody()))});
+            sendGenericMessage(sessions[sessionId].fbid, {text: JSON.stringify(JSON.parse(req.getBody()).res)});
             delete context.cancelOrder;
             delete context.trackOrder;
             delete context.noIntent;
+            context.done = true;
             return resolve();
         })
     },
@@ -270,11 +291,12 @@ app.get('/webhook/', function (req, res) {
 app.post('/webhook/', function (req, res) {
 
     const data = req.body;
+    console.log(JSON.stringify(data)+'___________');
 
     if (data.object === 'page') {
         data.entry.forEach(entry => {
             entry.messaging.forEach(event => {
-                if (event.message) {
+                if (event.message && !event.message.app_id) {
                     // Yay! We got a new message!
                     // We retrieve the Facebook user ID of the sender
                     const sender = event.sender.id;
@@ -286,7 +308,7 @@ app.post('/webhook/', function (req, res) {
                     // We retrieve the message content
                     const text = event.message.text;
                     const attachments = event.message.attachments;
-
+                    console.log("RECEIVE " + text + " FROM " + sender);
                     if (attachments) {
                         // We received an attachment
                         // Let's reply with an automatic message
