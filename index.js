@@ -94,14 +94,6 @@ const actions = {
             return Promise.resolve()
         }
     },
-    // send(request, response) {
-    //     const {sessionId, context, entities} = request;
-    //     const {text, quickreplies} = response;
-    //     return new Promise(function(resolve, reject) {
-    //         console.log('sending...', JSON.stringify(response));
-    //         return resolve();
-    //     });
-    // },
     trackOrder({context, entities}) {
         return new Promise(function (resolve, reject) {
             var orderNumber = firstEntityValue(entities, 'orderNumber');
@@ -117,22 +109,51 @@ const actions = {
     },
     sendOrderInfo({sessionId, context, text, entities}) {
         return new Promise(function(resolve, reject) {
-            console.log('Session ${sessionId} received ${text}');
-            console.log('The current context is ${JSON.stringify(context)}');
-            console.log('Wit extracted ${JSON.stringify(entities)}');
+            let messageData = {
+                "attachment": {
+                    "type": "template",
+                    "payload": {
+                        "template_type": "generic",
+                        "elements": [{
+                            "title": "First card",
+                            "subtitle": "Element #1 of an hscroll",
+                            "image_url": "http://messengerdemo.parseapp.com/img/rift.png",
+                            "buttons": [{
+                                "type": "web_url",
+                                "url": "https://www.messenger.com",
+                                "title": "web url"
+                            }, {
+                                "type": "postback",
+                                "title": "Postback",
+                                "payload": "Payload for first element in a generic bubble",
+                            }],
+                        }, {
+                            "title": "Second card",
+                            "subtitle": "Element #2 of an hscroll",
+                            "image_url": "http://messengerdemo.parseapp.com/img/gearvr.png",
+                            "buttons": [{
+                                "type": "postback",
+                                "title": "Postback",
+                                "payload": "Payload for second element in a generic bubble",
+                            }],
+                        }]
+                    }
+                }
+            };
+            sendGenericMessage(sessions[sessionId].fbid, messageData);
             return resolve();
         });
     },
-    chatForFun({context, entities}) {
+    chatForFun({sessionId, context, text, entities}) {
         return new Promise(function (resolve, reject) {
-            var message_body = firstEntityValue(entities, 'message_body');
-            // request('http://104.199.133.173:8080/say?q=' + message_body, function (error, response, body) {
-            //     if (!error && response.statusCode == 200) {
-            //         console.log(message_body);
-            //         var obj = JSON.parse(body);
-            //         console.log(obj.res); // Show the HTML for the Google homepage.
-            //     }
-            // });
+            request('http://104.199.133.173:8080/say?q=' + text, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    var obj = JSON.parse(body);
+                    console.log("Chat for fun");
+                    console.log(JSON.stringify(obj.res));
+                    sendGenericMessage(sessions[sessionId].fbid, obj.res);
+                }
+            });
             return resolve();
         })
     },
@@ -232,6 +253,24 @@ app.post('/webhook/', function (req, res) {
     }
     res.sendStatus(200);
 });
+
+function sendGenericMessage(sender, messageData) {
+    request({
+        url: 'https://graph.facebook.com/v2.6/me/messages',
+        qs: {access_token:encodeURIComponent(process.env.FB_PAGE_ACCESS_TOKEN)},
+        method: 'POST',
+        json: {
+            recipient: {id:sender},
+            message: messageData,
+        }
+    }, function(error, response, body) {
+        if (error) {
+            console.log('Error sending messages: ', error)
+        } else if (response.body.error) {
+            console.log('Error: ', response.body.error)
+        }
+    })
+}
 
  // Spin up the server
 app.listen(app.get('port'), function() {
