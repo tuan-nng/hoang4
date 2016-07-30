@@ -146,14 +146,16 @@ const actions = {
     },
     chatForFun({sessionId, context, text, entities}) {
         return new Promise(function (resolve, reject) {
+            var goodToGo = false;
             request('http://104.199.133.173:8080/say?q=' + text, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     var obj = JSON.parse(body);
-                    console.log("Chat for fun");
-                    console.log(JSON.stringify(obj.res));
-                    sendGenericMessage(sessions[sessionId].fbid, obj.res);
+                    sendGenericMessage(sessions[sessionId].fbid, {text: JSON.stringify(obj.res)});
+                    goodToGo = true;
                 }
             });
+            while (!goodToGo) {
+            }
             return resolve();
         })
     },
