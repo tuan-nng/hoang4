@@ -18,10 +18,6 @@ try {
     log = require('node-wit').log;
 }
 
-function sleep (time) {
-    return new Promise((resolve) => setTimeout(resolve, time));
-}
-
 const firstEntityValue = (entities, entity) => {
     const val = entities && entities[entity] &&
             Array.isArray(entities[entity]) &&
@@ -102,27 +98,25 @@ const actions = {
     },
     detectIntent({context, entities}) {
         return new Promise(function (resolve, reject) {
-            console.log("Dectec intent ++++");
             var intent = firstEntityValue(entities, 'intent');
             if (intent) {
                 if (intent === 'cancel_order') {
-                    console.log("cancel-------");
+                    console.log("CANCEL ORDER");
                     context.cancelOrder = true;
                     delete context.trackOrder;
                     delete context.noIntent;
                 } else if (intent === 'track_order') {
-                    console.log("Track=========");
+                    console.log("TRACK ORDER");
                     context.trackOrder = true;
                     delete context.cancelOrder;
                     delete context.noIntent;
                 } else {
-                    console.log("no itent-------");
+                    console.log("NO INTENT");
                     context.noIntent = true;
                     delete context.cancelOrder;
                     delete context.trackOrder;
                 }
             } else {
-                console.log("no intent-------");
                 context.noIntent = true;
                 delete context.cancelOrder;
                 delete context.trackOrder;
@@ -145,6 +139,9 @@ const actions = {
                 let messageData = {text: "You canceled the request."};
                 sendGenericMessage(sessions[sessionId].fbid, messageData);
             }
+            delete context.cancelOrder;
+            delete context.trackOrder;
+            delete context.noIntent;
             return resolve(context);
         })
     },
@@ -231,8 +228,17 @@ const actions = {
     },
     chatForFun({sessionId, context, text, entities}) {
         return new Promise(function (resolve, reject) {
-            var req = syncRequest('GET', 'http://104.199.133.173:8080/say?q=' + text);
-            sendGenericMessage(sessions[sessionId].fbid, {text: JSON.stringify(JSON.parse(req.getBody()).res)});
+            let escapedText = text.replace(/[\u0080-\uFFFF]/g, function(m) {
+                return "0x" + ("0000" + m.charCodeAt(0).toString(16)).slice(-4);
+            });
+            var req = syncRequest('GET', 'http://104.199.133.173:8080/say?q=' + escapedText);
+            var result = JSON.stringify(JSON.parse(req.getBody()).res);
+
+            var r = /0x([\d\w]{4})/gi;
+            var x = result.replace(r, function (match, grp) {
+                return String.fromCharCode(parseInt(grp, 16)); } );
+            x = unescape(x);
+            sendGenericMessage(sessions[sessionId].fbid, {text: x});
             delete context.cancelOrder;
             delete context.trackOrder;
             delete context.noIntent;
@@ -291,7 +297,6 @@ app.get('/webhook/', function (req, res) {
 app.post('/webhook/', function (req, res) {
 
     const data = req.body;
-    console.log(JSON.stringify(data)+'___________');
 
     if (data.object === 'page') {
         data.entry.forEach(entry => {
@@ -308,7 +313,6 @@ app.post('/webhook/', function (req, res) {
                     // We retrieve the message content
                     const text = event.message.text;
                     const attachments = event.message.attachments;
-                    console.log("RECEIVE " + text + " FROM " + sender);
                     if (attachments) {
                         // We received an attachment
                         // Let's reply with an automatic message
@@ -336,7 +340,7 @@ app.post('/webhook/', function (req, res) {
                             // }
 
                             // Updating the user's current session state
-                            sessions[sessionId].context = context;
+                            // sessions[sessionId].context = context;
                         })
                             .catch((err) => {
                                 console.error('Oops! Got an error from Wit: ', err.stack || err);
